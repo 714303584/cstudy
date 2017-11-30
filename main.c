@@ -1,52 +1,93 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/socketvar.h>
-#include <netinet/in.h>
-#include <string.h>
+#include <sodium.h>
+#include "md5.h"
 
-#define TRUE 1
+#define MESSAGE ((const unsigned char *) "Arbitrary data to hash")
+#define MESSAGE_LEN 22
+
+#define CIPHERTEXT_LEN (crypto_secretbox_MACBYTES + MESSAGE_LEN)
+
 
 
 int main()
 {
-    int client_fd;
+    MD5_CTX md5;
+    MD5Init(&md5);
+    int i;
+    unsigned char encrypt[] ="admin";//21232f297a57a5a743894a0e4a801fc3
+    unsigned char decrypt[16];
+    MD5Update(&md5,encrypt,strlen((char *)encrypt));
+    MD5Final(&md5,decrypt);
+    printf("加密前:%s\n加密后16位:",encrypt);
+    for(i=4;i<12;i++)
+    {
+        printf("%02x",decrypt[i]);  //02x前需要加上 %
+    }
 
-    struct sockaddr_in cliadd;
+    printf("\n加密前:%s\n加密后32位:",encrypt);
+    for(i=0;i<16;i++)
+    {
+        printf("%02x",decrypt[i]);  //02x前需要加上 %
+    }
 
-    client_fd = socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
+    getchar();
 
-    cliadd.sin_family = AF_INET;
-    cliadd.sin_port = 8000;
 
-    connect(client_fd,(struct sockaddr*)&cliadd,sizeof(cliadd));
+    return 0;
+}
 
-    char recvline[4096],sendline[4096];
 
-    while(TRUE){
-        fgets(sendline,4096,stdin);
 
-        if(strcmp(sendline,"bye") == 0){
-            break;
-
+void second()
+{
+        if (sodium_init() < 0) {
+        /* panic! the library couldn't be initialized, it is not safe to use */
+            printf("sodium_init()  error! \n");
+            return -1;
+        }else{
+            printf("sodium_init() success!\n");
         }
 
-        int errono;
+        unsigned char *message = "Arbitrary data to hash";
 
-        if( errono = send(client_fd,sendline,strlen(sendline),0) < 0){
+        int message_len = 22;
+
+        unsigned char hash[crypto_generichash_BYTES];
+
+        crypto_generichash(hash, sizeof hash, message, message_len, NULL, 0);
 
 
-        }
-        printf("send msg error: %s (errno: %d ) \n",strerror(errono),errono);
+
+}
+
+void first()
+{
+
+    unsigned char key[crypto_secretbox_MACBYTES] = "xiaozhuzhu";
+    unsigned char nonce[crypto_secretbox_NONCEBYTES];
+    unsigned char ciphertext[CIPHERTEXT_LEN];
+
+    crypto_secretbox_keygen(key);
+
+    //randombytes_buf(nonce, sizeof nonce);
+
+    crypto_secretbox_easy(ciphertext, MESSAGE, MESSAGE_LEN, nonce, key);
+
+    unsigned char decrypted[1024];
+
+
+    memset(decrypted, 0, sizeof decrypted);
+
+
+    if(crypto_secretbox_open_easy(decrypted, ciphertext, CIPHERTEXT_LEN, nonce, key) != 0){
+
+
+    }
+    else
+    {
+        printf("message: %s \n" , decrypted);
 
     }
 
-
-
-
-
-
-    printf("Hello world!\n");
-    return 0;
 }
